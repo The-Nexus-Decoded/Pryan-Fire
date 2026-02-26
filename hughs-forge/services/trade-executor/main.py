@@ -255,12 +255,10 @@ class TradeExecutor:
     def __init__(self, rpc_endpoint: str, private_key: str = None):
         self.wallet: Optional[Keypair] = Keypair.from_base58_string(private_key) if private_key else None
         self.client = AsyncClient(rpc_endpoint)
-        self.sol_client = SolClient(rpc_endpoint)
-        self.jupiter_client = Jupiter(
-            self.sol_client,
-            jupiter_keys=JupiterKeys(),
-            referrer=JupReferrerAccount()
-        )
+        self.sync_client = Client(rpc_endpoint)
+        self.jupiter_client = Jupiter(self.sync_client)
+        if self.wallet:
+            self.jupiter_client.keypair = self.wallet
 
         self.provider = Provider(self.client, Wallet(self.wallet) if self.wallet else None)
         self.meteora_dlmm_program = Program(
