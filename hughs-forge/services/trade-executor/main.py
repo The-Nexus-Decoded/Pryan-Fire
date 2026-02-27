@@ -211,7 +211,7 @@ METEORA_IDL = Idl.from_json(json.dumps(METEORA_IDL_DICT))
 
 class RiskManager:
     """Manages trading risk, including limits, strategy scoring, and circuit breaker functionality."""
-    def __init__(self, daily_loss_limit: float = -1000.0, max_trade_size: float = 100.0, mode: str = "DEGEN"):
+    def __init__(self, daily_loss_limit: float = -1000.0, max_trade_size: float = 100.0, mode: str = "SAFE"):
         self.daily_loss_limit = daily_loss_limit
         self.max_trade_size = max_trade_size
         self.current_daily_loss = 0.0
