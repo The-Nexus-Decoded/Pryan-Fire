@@ -286,17 +286,20 @@ class TradeExecutor:
         payer: Keypair
     ) -> Optional[str]:
         """Opens a new Meteora DLMM LP position."""
-        if not self.wallet or self.wallet.pubkey() != payer.pubkey():
-            logger.error("❌ Cannot open LP position: Wallet private key not loaded or not matching payer.")
+        if not self.wallet and not self.paper_trading_mode:
+            logger.error("❌ Cannot open LP position: Wallet private key not loaded.")
+            return None
+
+        # Failsafe Check
+        if Path(FORCE_STOP_FILE).exists():
+            logger.critical("🚨 EXECUTION VETOED: Force-stop lock file detected!")
             return None
 
         logger.info(f"Opening Meteora DLMM LP position for Pool {pool_pubkey}...")
         new_position_keypair = Keypair()
 
         try:
-            # Construct the instruction
-            # This is a simplified call assuming the IDL matches these arguments and accounts.
-            # Real-world usage would require careful matching to the actual program IDL.
+            # 1. Build Instruction
             ix = await self.meteora_dlmm_program.instruction["initializePosition"].build(
                 {
                     "lowerBinId": lower_bin_id,
@@ -307,23 +310,42 @@ class TradeExecutor:
                     "position": new_position_keypair.pubkey(),
                     "owner": payer.pubkey(),
                     "pool": pool_pubkey,
-                    "rent": Pubkey.from_string("SysvarRent1111111111111111111111111111111"), # Assuming Rent Sysvar
+                    "rent": Pubkey.from_string("SysvarRent1111111111111111111111111111111"),
                     "systemProgram": SYSTEM_PROGRAM_ID,
                 },
             )
             
-            # Create and send transaction
+            # 2. Construct Transaction
             recent_blockhash = (await self.client.get_latest_blockhash()).value.blockhash
             transaction = Transaction.populate(recent_blockhash, [ix], [payer, new_position_keypair])
             
-            # Sign and send (assuming self.wallet is the payer)
-            # If there are other signers, they would be added to the populate call
-            response = await self.client.send_transaction(transaction, payer, new_position_keypair)
-            tx_hash = response.value
-            logger.info(f"--> Opened LP Position. Tx Hash: {tx_hash}")
+            # 3. Handle Execution Path
+            if self.paper_trading_mode:
+                tx_hash = f"sim_tx_open_{int(datetime.datetime.now().timestamp())}"
+                logger.info(f"--> [PAPER TRADING] Simulated Opened LP Position. Tx Hash: {tx_hash}")
+                log_telemetry("PAPER_TRADE_EXECUTED", {"action": "open_meteora_lp_position", "tx_hash": tx_hash, "pool": str(pool_pubkey)})
+                send_discord_alert(f"📝 **PAPER LP OPENED**\n**Pool**: `{pool_pubkey}`\n**Bins**: {lower_bin_id} to {upper_bin_id}\n**Hash**: `{tx_hash}`", color=3447003)
+            else:
+                # LIVE EXECUTION RUNE
+                response = await self.client.send_transaction(transaction, payer, new_position_keypair)
+                tx_hash = str(response.value)
+                logger.info(f"--> [LIVE] Opened LP Position. Tx Hash: {tx_hash}")
+                log_telemetry("LIVE_TRADE_EXECUTED", {"action": "open_meteora_lp_position", "tx_hash": tx_hash, "pool": str(pool_pubkey)})
+                send_discord_alert(f"🚀 **LIVE LP OPENED**\n**Pool**: `{pool_pubkey}`\n**Bins**: {lower_bin_id} to {upper_bin_id}\n**Hash**: `{tx_hash}`", color=3066993)
+            
+            # 4. Record in Ledger
+            self.ledger.record_entry(
+                symbol=f"LP-{str(pool_pubkey)[:8]}",
+                mint=str(pool_pubkey),
+                price=0.0, # LP position entry
+                amount=float(liquidity),
+                metadata={"tx_hash": tx_hash, "paper": self.paper_trading_mode, "position_pubkey": str(new_position_keypair.pubkey())}
+            )
+            
             return tx_hash
         except Exception as e:
             logger.error(f"--> Error opening LP position: {e}")
+            send_discord_alert(f"❌ **LP OPEN FAILURE**\n**Error**: `{str(e)}`", color=15158332)
             return None
 
     async def close_meteora_lp_position(
