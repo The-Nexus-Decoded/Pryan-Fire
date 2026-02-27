@@ -49,3 +49,6 @@ Thumbs.db
 *.swp
 *.swo
 hughs-forge/config/testnet/.env.devnet
+hughs-forge/wallets/
+hughs-forge/services/trade-executor/testvenv2/
+hughs-forge/services/trade-executor/trade_telemetry.jsonl
