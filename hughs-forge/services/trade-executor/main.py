@@ -618,8 +618,13 @@ class TradeExecutor:
         owner: Keypair
     ) -> Optional[str]:
         """Closes an existing Meteora DLMM LP position."""
-        if not self.wallet or self.wallet.pubkey() != owner.pubkey():
-            logger.error("❌ Cannot close LP position: Wallet private key not loaded or not matching owner.")
+        if not self.wallet and not self.paper_trading_mode:
+            logger.error("❌ Cannot close LP position: Wallet private key not loaded.")
+            return None
+
+        # Failsafe Check
+        if Path(FORCE_STOP_FILE).exists():
+            logger.critical("🚨 EXECUTION VETOED: Force-stop lock file detected!")
             return None
 
         logger.info(f"Closing Meteora DLMM LP position {position_pubkey} for Pool {pool_pubkey}...")
@@ -640,13 +645,21 @@ class TradeExecutor:
                 tx_hash = f"sim_tx_close_{int(datetime.datetime.now().timestamp())}"
                 logger.info(f"--> [PAPER TRADING] Simulated Closed LP Position. Tx Hash: {tx_hash}")
                 log_telemetry("PAPER_TRADE_EXECUTED", {"action": "close_meteora_lp_position", "tx_hash": tx_hash, "position": str(position_pubkey)})
+                send_discord_alert(f"📝 **PAPER LP CLOSED**\n**Position**: `{position_pubkey}`\n**Hash**: `{tx_hash}`", color=3447003)
             else:
                 response = await self.client.send_transaction(transaction, owner)
-                tx_hash = response.value
-                logger.info(f"--> Closed LP Position. Tx Hash: {tx_hash}")
+                tx_hash = str(response.value)
+                logger.info(f"--> [LIVE] Closed LP Position. Tx Hash: {tx_hash}")
+                log_telemetry("LIVE_TRADE_EXECUTED", {"action": "close_meteora_lp_position", "tx_hash": tx_hash, "position": str(position_pubkey)})
+                send_discord_alert(f"🚀 **LIVE LP CLOSED**\n**Position**: `{position_pubkey}`\n**Hash**: `{tx_hash}`", color=3066993)
+            
+            # Update Ledger - Mark as closed
+            # self.ledger.mark_closed(str(position_pubkey)) # TODO: Implement mark_closed in ledger.py
+            
             return tx_hash
         except Exception as e:
             logger.error(f"--> Error closing LP position: {e}")
+            send_discord_alert(f"❌ **LP CLOSE FAILURE**\n**Error**: `{str(e)}`", color=15158332)
             return None
 
     async def claim_meteora_fees(
