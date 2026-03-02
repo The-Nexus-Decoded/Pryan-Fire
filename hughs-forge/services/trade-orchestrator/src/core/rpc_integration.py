@@ -2,10 +2,10 @@ import logging
 import os
 import httpx
 from typing import Dict, Any, Optional
-from solana.keypair import Keypair
+from solders.keypair import Keypair
 from solana.rpc.api import Client
 from solana.rpc.types import TxOpts
-from solana.transaction import Transaction
+from solders.transaction import Transaction
 import base64
 
 logger = logging.getLogger("RpcIntegrator")
