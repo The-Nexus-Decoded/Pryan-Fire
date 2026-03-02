@@ -69,7 +69,11 @@ jobs:
         run: |
           echo "Starting orchestrator dry-run (5s timeout)..."
           cd hughs-forge/services/trade-orchestrator/src
+<<<<<<< HEAD
           timeout 5 python3 main.py --db ":memory:" --dry-run --dry-run --dry-run --dry-run || {
+=======
+          timeout 5 python3 main.py --db ":memory:" --dry-run || {
+>>>>>>> d538598 (fix: add --dry-run flag to orchestrator dry-run test to avoid wallet file dependency)
             exit_code=$?
             if [ $exit_code -eq 124 ]; then
               echo "Orchestrator ran for 5s without crashing. Dry run PASSED."
