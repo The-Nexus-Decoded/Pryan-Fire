@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Insights - Strategy V2</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0d1117; color: #c9d1d9; line-height: 1.6; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { color: #58a6ff; margin-bottom: 10px; }
+        h2 { color: #8b949e; margin: 30px 0 15px; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
+        .stat-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; text-align: center; }
+        .stat-value { font-size: 2em; font-weight: bold; color: #58a6ff; }
+        .stat-label { color: #8b949e; font-size: 0.9em; }
+        .chart-container { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; margin: 20px 0; }
+        .insights { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; margin: 20px 0; }
+        .insight-item { padding: 10px 0; border-bottom: 1px solid #30363d; }
+        .insight-item:last-child { border-bottom: none; }
+        .insight-item strong { color: #58a6ff; }
+        .recommendation { background: #1f3a2f; border-left: 4px solid #3fb950; padding: 15px; margin: 10px 0; border-radius: 0 8px 8px 0; }
+        .warning { background: #3a1f1f; border-left: 4px solid #f85149; padding: 15px; margin: 10px 0; border-radius: 0 8px 8px 0; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #30363d; }
+        th { color: #58a6ff; }
+        tr:hover { background: #21262d; }
+        .nav { display: flex; gap: 20px; margin-bottom: 20px; }
+        .nav a { color: #58a6ff; text-decoration: none; padding: 8px 16px; border-radius: 6px; }
+        .nav a:hover { background: #21262d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Trading Insights Dashboard</h1>
+        <p>Strategy V2 Knowledge Base | Data: 73,660 transactions | Generated: 2026-03-05</p>
+        
+        <div class="nav">
+            <a href="#overview">Overview</a>
+            <a href="#timing">Timing Patterns</a>
+            <a href="#failures">Failure Analysis</a>
+            <a href="#recommendations">Recommendations</a>
+        </div>
+
+        <h2 id="overview">📈 Overview</h2>
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value">12,793</div>
+                <div class="stat-label">Token Trades (Owner)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">70</div>
+                <div class="stat-label">Token Trades (Bot)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">5.9%</div>
+                <div class="stat-label">Failure Rate</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">$4,156</div>
+                <div class="stat-label">Median Trade Size</div>
+            </div>
+        </div>
+
+        <h2 id="timing">⏰ Trading Hours (UTC)</h2>
+        <div class="chart-container">
+            <canvas id="hourChart" height="80"></canvas>
+        </div>
+
+        <h2>📅 Day of Week</h2>
+        <div class="chart-container">
+            <canvas id="dowChart" height="60"></canvas>
+        </div>
+
+        <h2 id="failures">⚠️ Failure Analysis by Hour</h2>
+        <div class="chart-container">
+            <canvas id="failureChart" height="60"></canvas>
+        </div>
+        
+        <div class="insights">
+            <h3>🔍 Key Insights</h3>
+            <div class="insight-item">
+                <strong>Peak Trading:</strong> Thursday (2,264 trades) - highest volume day
+            </div>
+            <div class="insight-item">
+                <strong>Lowest Activity:</strong> Sunday (1,324 trades)
+            </div>
+            <div class="insight-item">
+                <strong>Best Execution Hour:</strong> 06:00-07:00 UTC - lowest failure rate
+            </div>
+            <div class="insight-item">
+                <strong>Worst Execution Hour:</strong> 16:00 UTC - 403 failures
+            </div>
+            <div class="insight-item">
+                <strong>Trade Size:</strong> Avg BUY: $6M | Avg SELL: $10M (sells 68% larger)
+            </div>
+        </div>
+
+        <h2 id="recommendations">✅ Strategy V2 Recommendations</h2>
+        
+        <div class="recommendation">
+            <strong>Position Sizing:</strong> Reduce position sizes during 11:00-17:00 UTC when failure rates are highest. Increase positions during 05:00-07:00 UTC for best execution.
+        </div>
+        
+        <div class="recommendation">
+            <strong>Timing:</strong> Trade primarily during 06:00-07:00 UTC and 10:00 UTC (lowest failure rates). Avoid 16:00 and 23:00 UTC.
+        </div>
+        
+        <div class="warning">
+            <strong>Risk Management:</strong> Keep >0.5 SOL balance for rent. InsufficientFundsForRent accounts for ~7% of all failures.
+        </div>
+        
+        <div class="recommendation">
+            <strong>Profit Taking:</strong> Sells average 68% larger than buys. Consider partial profit-taking rather than full position exits.
+        </div>
+
+        <h2>📋 Top Tokens by Volume</h2>
+        <table>
+            <tr><th>Token</th><th>Volume</th><th>Trades</th></tr>
+            <tr><td>FbmmdcCYHL7W</td><td>$80.5M</td><td>31</td></tr>
+            <tr><td>2oCxjpWWEmCu</td><td>$67M</td><td>245</td></tr>
+            <tr><td>a4WcyMS183n6</td><td>$43.6M</td><td>236</td></tr>
+            <tr><td>4KdRXLTk5A1P</td><td>$33.5M</td><td>79</td></tr>
+            <tr><td>BkSbFrDMkfko</td><td>$25.5M</td><td>78</td></tr>
+        </table>
+
+        <footer style="margin-top: 40px; padding: 20px; color: #8b949e; text-align: center; border-top: 1px solid #30363d;">
+            <p>Full data available in: owner_trades.csv, bot_trades.csv | Knowledge base: trading-insights-2026-03-05.md</p>
+        </footer>
+    </div>
+
+    <script>
+        // Hour distribution data
+        const hourData = {
+            labels: ['00:00', '01:00', '02:00', '03:00', '04:00', '05:00', '06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00'],
+            datasets: [{
+                label: 'Trades',
+                data: [569, 386, 273, 333, 359, 240, 320, 393, 439, 522, 631, 725, 621, 809, 847, 720, 700, 570, 484, 390, 597, 627, 615, 623],
+                backgroundColor: 'rgba(88, 166, 255, 0.5)',
+                borderColor: '#58a6ff',
+                borderWidth: 1
+            }]
+        };
+
+        // Day of week data
+        const dowData = {
+            labels: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+            datasets: [{
+                label: 'Trades',
+                data: [1498, 1930, 1904, 2264, 1982, 1891, 1324],
+                backgroundColor: ['#f85149', '#f0883e', '#e3b341', '#3fb950', '#58a6ff', '#a371f7', '#8b949e'],
+                borderWidth: 0
+            }]
+        };
+
+        // Failure rate by hour
+        const failureData = {
+            labels: ['00:00', '01:00', '02:00', '03:00', '04:00', '05:00', '06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00'],
+            datasets: [{
+                label: 'Failures',
+                data: [126, 108, 117, 100, 125, 109, 97, 125, 166, 218, 93, 278, 133, 278, 212, 159, 403, 299, 157, 265, 136, 148, 158, 359],
+                backgroundColor: 'rgba(248, 81, 73, 0.6)',
+                borderColor: '#f85149',
+                borderWidth: 1
+            }]
+        };
+
+        // Chart configurations
+        const chartOptions = {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: '#30363d' }, ticks: { color: '#8b949e' } },
+                x: { grid: { color: '#30363d' }, ticks: { color: '#8b949e' } }
+            }
+        };
+
+        new Chart(document.getElementById('hourChart'), {
+            type: 'bar',
+            data: hourData,
+            options: chartOptions
+        });
+
+        new Chart(document.getElementById('dowChart'), {
+            type: 'bar',
+            data: dowData,
+            options: { ...chartOptions, plugins: { legend: { display: false } } }
+        });
+
+        new Chart(document.getElementById('failureChart'), {
+            type: 'bar',
+            data: failureData,
+            options: chartOptions
+        });
+    </script>
+</body>
+</html>
