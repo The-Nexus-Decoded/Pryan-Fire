@@ -70,16 +70,23 @@ momentum_scanner = None
 
 def compute_trade_amount(mint: str, liquidity: float = 0) -> float:
     """Compute trade amount based on config mode and liquidity."""
+    # Minimum trade amount in SOL (~$5 at $100/SOL) - Jupiter requires ~$5 minimum
+    MIN_TRADE_SOL = 0.05
+    
     base = float(config.get("pump_trade_amount_base", 0.1))
     mode = config.get("pump_trade_amount_mode", "fixed")
     if mode == "fixed":
-        return base
-    # flexible: scale with liquidity, clamped 0.1–1.0×
-    threshold = float(config.get("pump_liquidity_threshold_sol", 100000.0))
-    factor = max(0.1, min(1.0, liquidity / threshold))
-    amount = base * factor
-    cap = 1.0  # hard cap in SOL
-    return min(amount, cap)
+        amount = base
+    else:
+        # flexible: scale with liquidity, clamped 0.1–1.0×
+        threshold = float(config.get("pump_liquidity_threshold_sol", 100000.0))
+        factor = max(0.1, min(1.0, liquidity / threshold))
+        amount = base * factor
+        cap = 1.0  # hard cap in SOL
+        amount = min(amount, cap)
+    
+    # Enforce minimum to avoid below-Jupiter-min trades
+    return max(amount, MIN_TRADE_SOL)
 
 # ----------------------------------------------------------------------
 # SIGNAL CALLBACK
