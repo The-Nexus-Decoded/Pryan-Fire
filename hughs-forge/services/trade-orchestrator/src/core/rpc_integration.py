@@ -118,6 +118,7 @@ class RpcIntegrator:
                 self.logger.info(f"Transaction send result: {result}")
 
                 tx_signature = str(result.value) if hasattr(result, 'value') else str(result)
+                self.logger.info(f"Transaction signature: https://solscan.io/tx/{tx_signature}")
                 entry_price = self._estimate_entry_price(quote, amount_lamports)
                 return {
                     "success": True,
@@ -144,6 +145,7 @@ class RpcIntegrator:
                     result = self.client.send_transaction(tx, opts=TxOpts(skip_preflight=True, max_retries=3))
                     self.logger.info(f"Transaction send result: {result}")
                     tx_signature = str(result.value) if hasattr(result, 'value') else str(result)
+                    self.logger.info(f"Transaction signature: https://solscan.io/tx/{tx_signature}")
                     entry_price = self._estimate_entry_price(quote, amount_lamports)
                     return {
                         "success": True,
