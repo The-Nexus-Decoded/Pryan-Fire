@@ -75,6 +75,23 @@ class TradeOrchestrator:
 
         # Post-Execution Phase
         if success:
+            # Double-check: require tx_signature for real execution
+            tx_sig = execution_result.get("tx_signature")
+            if not tx_sig or tx_sig == "dry_run_mock_signature":
+                self.logger.warning(f"[{trade_id}] Trade marked successful but no valid tx_signature. Marking as FAILED.")
+                current_state = TradeState.FAILED.value
+                self.state_manager.save_trade(
+                    trade_id, current_state, token_address, amount,
+                    data={**signal_data, **execution_result},
+                    rejection_reason="No valid tx_signature - trade may not have executed on-chain",
+                    route=route
+                )
+                self._broadcast_failed(trade_id, token_address, amount, {
+                    "route": route,
+                    "error": "No valid tx_signature"
+                })
+                return current_state
+                
             self.logger.info(f"[{trade_id}] Trade execution successful. Transitioning to EXECUTED.")
             current_state = TradeState.EXECUTED.value
             self.state_manager.save_trade(
