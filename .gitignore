@@ -70,3 +70,4 @@ haplos-workshop/signal-intel/
 trade_ledger.jsonl
 package-lock.json
 *.backup
+trades.db
