@@ -119,6 +119,12 @@ class RpcIntegrator:
 
                 tx_signature = str(result.value) if hasattr(result, 'value') else str(result)
                 self.logger.info(f"Transaction signature: https://solscan.io/tx/{tx_signature}")
+                
+                # Wait for on-chain confirmation before returning success
+                confirmed = self._wait_for_confirmation(tx_signature)
+                if not confirmed:
+                    self.logger.warning(f"Transaction sent but confirmation pending: {tx_signature}")
+                
                 entry_price = self._estimate_entry_price(quote, amount_lamports)
                 return {
                     "success": True,
@@ -146,6 +152,12 @@ class RpcIntegrator:
                     self.logger.info(f"Transaction send result: {result}")
                     tx_signature = str(result.value) if hasattr(result, 'value') else str(result)
                     self.logger.info(f"Transaction signature: https://solscan.io/tx/{tx_signature}")
+                    
+                    # Wait for on-chain confirmation before returning success
+                    confirmed = self._wait_for_confirmation(tx_signature)
+                    if not confirmed:
+                        self.logger.warning(f"Transaction sent but confirmation pending: {tx_signature}")
+                    
                     entry_price = self._estimate_entry_price(quote, amount_lamports)
                     return {
                         "success": True,
@@ -185,6 +197,41 @@ class RpcIntegrator:
         except Exception:
             pass
         return None
+
+    def _wait_for_confirmation(self, tx_signature: str, timeout_seconds: int = 30, poll_interval: float = 1.0) -> bool:
+        """Wait for transaction to be confirmed on-chain. Returns True if confirmed, False if failed/expired."""
+        import time
+        from solana.rpc.commitment import Confirmed
+        start_time = time.time()
+        self.logger.info(f"Waiting for confirmation of tx: {tx_signature}")
+        
+        while time.time() - start_time < timeout_seconds:
+            try:
+                resp = self.client.get_signature_statuses([tx_signature])
+                if hasattr(resp, 'value') and resp.value:
+                    status = resp.value[0]
+                    if status is not None:
+                        err = status.err
+                        if err is None:
+                            # Check confirmation status
+                            confirm_status = status.confirmation_status
+                            if confirm_status == Confirmed or confirm_status == "confirmed":
+                                self.logger.info(f"Transaction confirmed: {tx_signature}")
+                                return True
+                            elif confirm_status == "finalized":
+                                self.logger.info(f"Transaction finalized: {tx_signature}")
+                                return True
+                        else:
+                            self.logger.error(f"Transaction failed on-chain: {err}")
+                            return False
+                time.sleep(poll_interval)
+            except Exception as e:
+                self.logger.warning(f"Confirmation check error: {e}")
+                time.sleep(poll_interval)
+        
+        self.logger.warning(f"Transaction confirmation timeout after {timeout_seconds}s: {tx_signature}")
+        # Don't fail the trade - just log warning, tx might still confirm
+        return False
 
     def execute_meteora_trade(self, token_address: str, amount: float) -> Dict[str, Any]:
         if self.dry_run:
