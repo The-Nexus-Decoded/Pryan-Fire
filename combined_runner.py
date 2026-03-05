@@ -325,6 +325,7 @@ class CombinedRunner:
                 "metadata": metadata,
                 "queued_at": time.time(),
                 "retries": 0,
+                "last_checked_at": 0,  # allow immediate first check
             }
             qsize = len(self._retry_queue)
         symbol = metadata.get("symbol", "UNKNOWN")
