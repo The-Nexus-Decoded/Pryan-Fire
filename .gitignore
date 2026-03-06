@@ -69,3 +69,5 @@ workflows/
 trade_ledger.jsonl
 package-lock.json
 *.backup
+*.db
+*.db

@@ -419,7 +419,7 @@ class TradeExecutor:
         # TODO: Implement re-entry and profit-taking logic
         pass
 
-    async def simulate_rebalance(self, position_data: Dict[str, Any], new_range: Dict[str, int], current_volatility: str = "NORMAL", dynamic_fees: Dict[str, Any] = None) -> Dict[str, Any]:
+    async def simulate_rebalance(self, position_data: Dict[str, Any], new_range: Dict[str, int], current_volatility: str = "NORMAL", dynamic_fees: Dict[str, Any] = None, fee_tvl_ratio_24h: float = None) -> Dict[str, Any]:
         """Simulates a rebalance to provide a structured Flight Record."""
         logger.info(f"--- [FLIGHT RECORDER: SIMULATED REBALANCE] ---")
         
@@ -439,7 +439,24 @@ class TradeExecutor:
 
         is_profitable = self.rebalance_strategy.check_profitability_threshold(expected_fee_capture, est_tx_fee + est_dust_loss, est_slippage)
         
-        fee_capture_increase = 100 if (position_data['activeId'] < position_data['lowerBinId'] or position_data['activeId'] > position_data['upperBinId']) else 25 
+        # Calculate fee_capture_increase from 24h fee per TCL (fee_tvl_ratio_24h)
+        # If out of range: use the 24h fee % as the projected increase
+        # If in range: use a fraction (25% of the 24h fee %) as a conservative estimate
+        is_out_of_range = position_data['activeId'] < position_data['lowerBinId'] or position_data['activeId'] > position_data['upperBinId']
+        
+        if fee_tvl_ratio_24h is not None and fee_tvl_ratio_24h > 0:
+            # Convert ratio to percentage (e.g., 0.001 -> 0.1%)
+            fee_pct = fee_tvl_ratio_24h * 100
+            if is_out_of_range:
+                fee_capture_increase = round(fee_pct, 2)
+            else:
+                # In-range: use 25% of the 24h fee % as conservative estimate
+                fee_capture_increase = round(fee_pct * 0.25, 2)
+            logger.info(f"    -> Using 24h fee per TCL: {fee_tvl_ratio_24h} -> {fee_capture_increase}%")
+        else:
+            # Fallback to legacy hardcoded values if fee data unavailable
+            fee_capture_increase = 100 if is_out_of_range else 25
+            logger.info(f"    -> Fee data unavailable, using legacy values: {fee_capture_increase}%") 
         
         report = {
             "ESTIMATED_REBALANCE_COST": f"{(est_tx_fee + est_dust_loss + est_slippage):.5f} SOL",
@@ -457,7 +474,6 @@ class TradeExecutor:
         })
         
         return report, is_profitable
-        })
         
         logger.info(f"    ESTIMATED_REBALANCE_COST: {report['ESTIMATED_REBALANCE_COST']}")
         logger.info(f"    EXPECTED_FEE_CAPTURE: {report['EXPECTED_FEE_CAPTURE']}")
@@ -713,6 +729,41 @@ class TradeExecutor:
             logger.error(f"--> Error fetching Pool state for {pool_pubkey}: {e}")
             return None
 
+    async def get_meteora_pool_fee_data(self, pool_address: str) -> Dict[str, Any]:
+        """Fetches 24h fee data from Meteora REST API including fee_tvl_ratio."""
+        logger.info(f"Fetching Pool Fee Data for {pool_address}...")
+        try:
+            import aiohttp
+            url = f"https://dlmm-api.meteora.ag/pair/all?address={pool_address}"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+                    if resp.status != 200:
+                        logger.warning(f"Meteora API returned {resp.status} for {pool_address}")
+                        return {"fee_tvl_ratio_24h": None}
+                    data = await resp.json()
+                    if isinstance(data, list):
+                        pools = data
+                    elif isinstance(data, dict):
+                        pools = data.get("data", [data])
+                    else:
+                        pools = []
+                    
+                    for pool in pools:
+                        if pool.get("address") == pool_address:
+                            fee_tvl = pool.get("fee_tvl_ratio", {})
+                            hour_24 = fee_tvl.get("hour_24") if isinstance(fee_tvl, dict) else None
+                            fees_24h = pool.get("fees_24h", 0)
+                            logger.info(f"    -> fee_tvl_ratio.hour_24: {hour_24}, fees_24h: {fees_24h}")
+                            return {
+                                "fee_tvl_ratio_24h": hour_24,
+                                "fees_24h": fees_24h
+                            }
+                    logger.warning(f"Pool {pool_address} not found in Meteora API response")
+                    return {"fee_tvl_ratio_24h": None}
+        except Exception as e:
+            logger.error(f"Error fetching pool fee data for {pool_address}: {e}")
+            return {"fee_tvl_ratio_24h": None}
+
     async def get_meteora_dynamic_fees(self, pool_pubkey: Pubkey) -> Dict[str, Any]:
         """Fetches dynamic fee parameters for a Meteora DLMM Pool."""
         logger.info(f"Fetching Dynamic Fees for {pool_pubkey}...")
@@ -815,7 +866,13 @@ class TradeExecutor:
                         if self.rebalance_strategy.should_rebalance(active_id, decoded_account.lower_bin_id, decoded_account.upper_bin_id, current_volatility):
                             new_range = self.rebalance_strategy.calculate_new_range(active_id, current_volatility)
                             logger.info(f"    -> STRATEGY RECOMMENDATION: Rebalance to range {new_range}")
-                            await self.simulate_rebalance(pos, new_range, current_volatility) # Pass volatility to simulation
+                            
+                            # Fetch 24h fee per TCL from Meteora REST API
+                            pool_address = str(decoded_account.pool)
+                            fee_data = await self.get_meteora_pool_fee_data(pool_address)
+                            fee_tvl_ratio_24h = fee_data.get("fee_tvl_ratio_24h")
+                            
+                            await self.simulate_rebalance(pos, new_range, current_volatility, fee_tvl_ratio_24h=fee_tvl_ratio_24h) # Pass fee data to simulation
                     logger.info(f"    -> Found LP Position {pubkey} in Pool {decoded_account.pool} (TokenX: {token_x_balance}, TokenY: {token_y_balance})")
 
             else:
