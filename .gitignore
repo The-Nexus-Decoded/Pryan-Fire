@@ -71,3 +71,5 @@ trade_ledger.jsonl
 package-lock.json
 *.backup
 trades.db
+data/
+data/
