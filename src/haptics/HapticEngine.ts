@@ -1,5 +1,7 @@
-// Haptic Patterns - V1 Spec
+// Haptic Patterns - V0.2 Spec
 // Based on spatial-ui-contract.md
+
+import { HapticFeedback } from '../gesture/GestureTypes';
 
 export type HapticEvent = 'intent_sent' | 'confirmed' | 'error';
 
@@ -8,8 +10,37 @@ export interface HapticPattern {
   intensity: 'low' | 'medium' | 'high';
 }
 
-// V1 Haptic Patterns
-export const HAPTIC_PATTERNS: Record<HapticEvent, HapticPattern> = {
+// V0.2 Haptic Patterns (from gesture map)
+export const HAPTIC_PATTERNS: Record<HapticFeedback, HapticPattern> = {
+  // tap → select → light
+  light: {
+    pulses: [20],
+    intensity: 'low',
+  },
+  // double_tap → confirm → double
+  double: {
+    pulses: [30, 60, 30],
+    intensity: 'medium',
+  },
+  // long_press → context → heavy
+  heavy: {
+    pulses: [80],
+    intensity: 'high',
+  },
+  // drag_x/y → translate → soft
+  soft: {
+    pulses: [15],
+    intensity: 'low',
+  },
+  // drag_z/pinch/rotate → medium
+  medium: {
+    pulses: [40],
+    intensity: 'medium',
+  },
+};
+
+// Legacy V1 patterns (backward compatibility)
+export const LEGACY_HAPTIC_PATTERNS: Record<HapticEvent, HapticPattern> = {
   // Intent sent (double-tap) - Single 35ms pulse, Medium
   intent_sent: {
     pulses: [35],
@@ -48,13 +79,23 @@ export class HapticEngine {
     };
   }
 
+  // V0.2: Play haptic by gesture feedback type (light, double, heavy, soft, medium)
+  playFeedback(feedback: HapticFeedback): void {
+    const pattern = HAPTIC_PATTERNS[feedback];
+    if (!pattern) {
+      console.warn(`[HapticEngine] Unknown feedback: ${feedback}`);
+      return;
+    }
+    this.vibrate(pattern.pulses);
+  }
+
+  // Legacy V1: Play haptic by event type (backward compatibility)
   play(event: HapticEvent): void {
-    const pattern = HAPTIC_PATTERNS[event];
+    const pattern = LEGACY_HAPTIC_PATTERNS[event];
     if (!pattern) {
       console.warn(`[HapticEngine] Unknown event: ${event}`);
       return;
     }
-
     this.vibrate(pattern.pulses);
   }
 
