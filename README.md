@@ -1,3 +1,12 @@
+## ⚠️ DEPRECATED
+
+This repository has been migrated to the **The-Nexus** monorepo.
+
+- **New location:** 
+- **Active development continues there.**
+- This repo is now **read-only** and will be archived.
+
+See: https://github.com/The-Nexus-Decoded/The-Nexus
 # Pryan-Fire — The Realm of Fire
 
 **Layer:** Business Logic  
@@ -8,7 +17,7 @@ Core business logic, agent services, and operative tools for the OpenClaw homela
 ## The Nexus Decoded
 
 <pre>
-The-Nexus-Decoded/
+The-Nexus
 ├── <b>Pryan-Fire/</b>          — Business logic, agent services, tools           ◀ you are here
 ├── Chelestra-Sea/       — Networking, communication, integration
 ├── Arianus-Sky/         — UIs, dashboards, visualizations
