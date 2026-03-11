@@ -64,3 +64,11 @@ export const GESTURE_MAP: GestureSpec[] = [
 
 // Confidence threshold for mobile commit vs queue split
 export const CONFIDENCE_THRESHOLD = 0.85;
+
+// Timing constants per xr-gesture-haptics-proto.md V1
+export const TIMING = {
+  DOUBLE_TAP_INTERVAL_MAX_MS: 300,
+  LONG_PRESS_THRESHOLD_MS: 500,
+  PREVIEW_QUEUE_MAX: 3,
+  GESTURE_TO_HEADSET_CONFIRM_MS: 2000,
+} as const;
