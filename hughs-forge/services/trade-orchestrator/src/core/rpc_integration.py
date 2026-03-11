@@ -16,7 +16,7 @@ class RpcIntegrator:
     def __init__(self, dry_run: bool = False):
         self.logger = logging.getLogger("RpcIntegrator")
         self.dry_run = dry_run
-        self.jupiter_endpoints = ["https://api.jup.ag/swap/v1"]
+        self.jupiter_endpoints = ["https://api.jup.ag/swap/v1", "https://quote-api.jup.ag/v6"]
         self.jupiter_api_key = os.getenv("JUPITER_API_KEY")
         if not self.jupiter_api_key:
             env_path = "/data/openclaw/keys/jupiter.env"
@@ -54,6 +54,7 @@ class RpcIntegrator:
         return route
 
     def execute_jupiter_trade(self, token_address: str, amount: float) -> Dict[str, Any]:
+        """Executes a trade via Jupiter aggregator."""
         if self.dry_run:
             self.logger.info(f"[DRY RUN] Skipping Jupiter trade execution for {token_address}, amount: {amount}")
             return {
